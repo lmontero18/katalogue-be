@@ -8,13 +8,23 @@ import { PrismaService } from 'src/shared/services/prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private readonly configService: ConfigService,
   ) {}
+
+  private async signToken(userId: string, email: string): Promise<string> {
+    const payload = { sub: userId, email };
+    return this.jwt.signAsync(payload, {
+      secret: this.configService.get('JWT_SECRET'),
+      expiresIn: '7d',
+    });
+  }
 
   async register(dto: RegisterDto) {
     try {
@@ -34,15 +44,14 @@ export class AuthService {
           name: dto.name,
           password: hashedPassword,
         },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-        },
       });
 
-      return user;
+      const token = await this.signToken(user.id, user.email);
+
+      return {
+        accessToken: token,
+        user,
+      };
     } catch (error) {
       console.error('Error in register:', error);
       throw new InternalServerErrorException(
@@ -66,7 +75,7 @@ export class AuthService {
 
       const { password, ...result } = user;
 
-      const token = this.jwt.sign({ sub: user.id, email: user.email });
+      const token = await this.signToken(user.id, user.email);
 
       return {
         accessToken: token,
