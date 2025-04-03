@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+} from 'class-validator';
 
 export class CreateCatalogueDto {
   @IsNotEmpty()
@@ -9,11 +15,18 @@ export class CreateCatalogueDto {
   @IsString()
   businessName: string;
 
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^[0-9+]+$/, {
+    message: 'Phone number must contain only numbers or +',
+  })
+  phoneNumber: string;
+
   @IsOptional()
-  @IsUrl({}, { message: 'Must be a valid url' })
+  @IsString({ message: 'Invalid image format' })
   storeImageUrl?: string;
 
   @IsNotEmpty()
-  @IsUrl({}, { message: 'Must be a valid url' })
+  @IsUrl({}, { message: 'Must be a valid URL' })
   contactLink: string;
 }
