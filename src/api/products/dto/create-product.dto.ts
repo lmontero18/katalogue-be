@@ -6,19 +6,21 @@ import {
   IsNumber,
 } from 'class-validator';
 import { ProductStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
   name: string;
 
-  @IsNotEmpty()
+  @Type(() => Number)
   @IsNumber()
+  @IsNotEmpty()
   price: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  imageUrl: string;
+  imageUrl?: string;
 
   @IsOptional()
   @IsString()

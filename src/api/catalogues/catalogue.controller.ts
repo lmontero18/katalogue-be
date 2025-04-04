@@ -6,8 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CatalogueService } from './catalogue.service';
 import { CreateCatalogueDto, UpdateCatalogueDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,12 +21,14 @@ export class CatalogueController {
   constructor(private readonly catalogueService: CatalogueService) {}
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
   @Post()
   create(
     @CurrentUser('userId') userId: string,
     @Body() dto: CreateCatalogueDto,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.catalogueService.create(userId, dto);
+    return this.catalogueService.create(userId, dto, file);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -2,15 +2,31 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/shared/services/prisma/prisma.service';
 import { CreateCatalogueDto, UpdateCatalogueDto } from './dto';
 import { Prisma } from '@prisma/client';
+import { SupabaseService } from 'src/shared/services/supabase/storage.service';
 
 @Injectable()
 export class CatalogueService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
-  async create(userId: string, dto: CreateCatalogueDto) {
+  async create(
+    userId: string,
+    dto: CreateCatalogueDto,
+    file?: Express.Multer.File,
+  ) {
+    let imageUrl: string | undefined;
+
+    if (file) {
+      const path = `catalogues/${dto.slug}-${Date.now()}.jpg`;
+      imageUrl = await this.supabaseService.uploadImage(file, path);
+    }
+
     return await this.prisma.catalogue.create({
       data: {
         ...dto,
+        storeImageUrl: imageUrl || '',
         userId,
       } as Prisma.CatalogueUncheckedCreateInput,
     });
