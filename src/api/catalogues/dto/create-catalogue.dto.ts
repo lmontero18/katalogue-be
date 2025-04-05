@@ -5,6 +5,7 @@ import {
   IsUrl,
   Matches,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateCatalogueDto {
   @IsNotEmpty()
@@ -27,6 +28,11 @@ export class CreateCatalogueDto {
   storeImageUrl?: string;
 
   @IsNotEmpty()
-  @IsUrl({}, { message: 'Must be a valid URL' })
+  @IsUrl({}, { message: 'Debe ser una URL válida (ej: https://...)' })
+  @Transform(({ value }) =>
+    value.startsWith('http://') || value.startsWith('https://')
+      ? value
+      : `https://${value}`,
+  )
   contactLink: string;
 }
