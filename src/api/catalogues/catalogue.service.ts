@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/shared/services/prisma/prisma.service';
 import { CreateCatalogueDto, UpdateCatalogueDto } from './dto';
 import { Prisma } from '@prisma/client';
@@ -19,6 +23,8 @@ export class CatalogueService {
     let imageUrl: string | undefined;
 
     if (file) {
+      this.validateImageFile(file);
+
       const path = `catalogues/${dto.slug}-${Date.now()}.jpg`;
       imageUrl = await this.supabaseService.uploadImage(file, path);
     }
@@ -72,5 +78,21 @@ export class CatalogueService {
     return await this.prisma.catalogue.delete({
       where: { id },
     });
+  }
+
+  // 👇 Función privada para validar el archivo
+  private validateImageFile(file: Express.Multer.File) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Formato de imagen no permitido. Solo se permiten JPG, PNG o WebP.',
+      );
+    }
+
+    // (Opcional) también podrías validar tamaño máximo, ejemplo 2MB
+    const maxSizeInBytes = 2 * 1024 * 1024;
+    if (file.size > maxSizeInBytes) {
+      throw new BadRequestException('La imagen no puede superar los 2MB.');
+    }
   }
 }
