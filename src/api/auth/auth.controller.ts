@@ -4,9 +4,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
-import { AppKeyGuard } from 'src/shared/guards/app-key.guard';
 
-@UseGuards(AppKeyGuard)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
