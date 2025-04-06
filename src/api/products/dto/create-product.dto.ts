@@ -1,10 +1,4 @@
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUrl,
-  IsNumber,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 import { ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
@@ -17,10 +11,6 @@ export class CreateProductDto {
   @IsNumber()
   @IsNotEmpty()
   price: number;
-
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
 
   @IsOptional()
   @IsString()

@@ -7,10 +7,11 @@ import {
   Patch,
   Delete,
   UseGuards,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ProductService } from './product.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,13 +23,13 @@ export class ProductController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FilesInterceptor('images', 3))
   create(
     @CurrentUser('userId') userId: string,
-    @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.productService.create(userId, dto, file);
+    return this.productService.create(userId, dto, files);
   }
 
   @Get('by-catalogue/:slug')
@@ -43,15 +44,25 @@ export class ProductController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Delete(':id/image')
+  async removeImage(
+    @Param('id') productId: string,
+    @Query('url') url: string,
+    @CurrentUser('userId') userId: string,
+  ) {
+    return this.productService.deleteImage(productId, url, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FilesInterceptor('images', 3))
   update(
     @Param('id') id: string,
     @CurrentUser('userId') userId: string,
     @Body() dto: UpdateProductDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.productService.update(id, userId, dto, file);
+    return this.productService.update(id, userId, dto, files);
   }
 
   @UseGuards(JwtAuthGuard)

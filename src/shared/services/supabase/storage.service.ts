@@ -1,4 +1,3 @@
-// src/shared/services/supabase/supabase.service.ts
 import { Injectable } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
@@ -14,7 +13,7 @@ export class SupabaseService {
     );
   }
 
-  async uploadImage(file: Express.Multer.File, path: string) {
+  async uploadImage(file: Express.Multer.File, path: string): Promise<string> {
     const { data, error } = await this.supabase.storage
       .from('catalogue-assets')
       .upload(path, file.buffer, {
@@ -27,5 +26,35 @@ export class SupabaseService {
     return this.supabase.storage
       .from('catalogue-assets')
       .getPublicUrl(data.path).data.publicUrl;
+  }
+
+  async deleteImageByUrl(url: string): Promise<void> {
+    const parts = url.split('/storage/v1/object/public/');
+    const path = parts[1]; // e.g. 'catalogue-assets/products/abc.jpg'
+
+    if (!path || !path.startsWith('catalogue-assets/')) return;
+
+    const objectPath = path.replace('catalogue-assets/', '');
+
+    const { error } = await this.supabase.storage
+      .from('catalogue-assets')
+      .remove([objectPath]);
+
+    if (error) throw error;
+  }
+
+  async deleteImagesByUrls(urls: string[]): Promise<void> {
+    const paths = urls
+      .map((url) => url.split('/storage/v1/object/public/')[1])
+      .filter((path) => path?.startsWith('catalogue-assets/'))
+      .map((path) => path.replace('catalogue-assets/', ''));
+
+    if (paths.length === 0) return;
+
+    const { error } = await this.supabase.storage
+      .from('catalogue-assets')
+      .remove(paths);
+
+    if (error) throw error;
   }
 }

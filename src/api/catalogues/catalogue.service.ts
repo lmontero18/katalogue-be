@@ -47,7 +47,13 @@ export class CatalogueService {
   async findBySlug(slug: string) {
     return await this.prisma.catalogue.findUnique({
       where: { slug },
-      include: { products: true },
+      include: {
+        products: {
+          include: {
+            images: true,
+          },
+        },
+      },
     });
   }
 
