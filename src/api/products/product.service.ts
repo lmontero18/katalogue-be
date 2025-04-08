@@ -9,12 +9,14 @@ import { SupabaseService } from 'src/shared/services/supabase/storage.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
+import { ImageService } from 'src/shared/services/Images/images.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabaseService: SupabaseService,
+    private readonly imageService: ImageService,
   ) {}
 
   async create(
@@ -42,12 +44,15 @@ export class ProductService {
     const imageUrls: string[] = [];
 
     for (const file of files) {
-      if (!file.mimetype.startsWith('image/')) {
-        throw new BadRequestException('Only image files are allowed');
-      }
+      this.imageService.validateImageFile(file);
+      const compressedBuffer = await this.imageService.compressImage(file);
 
-      const path = `products/${randomUUID()}-${file.originalname}`;
-      const url = await this.supabaseService.uploadImage(file, path);
+      const path = `products/${randomUUID()}-${file.originalname}.webp`;
+      const url = await this.supabaseService.uploadImage(
+        { ...file, buffer: compressedBuffer },
+        path,
+      );
+
       imageUrls.push(url);
     }
 
@@ -68,61 +73,6 @@ export class ProductService {
         url,
       })),
     });
-
-    return product;
-  }
-
-  async findAllFromCatalogue(slug: string) {
-    const catalogue = await this.prisma.catalogue.findUnique({
-      where: { slug },
-      include: {
-        products: {
-          include: {
-            images: true,
-          },
-        },
-      },
-    });
-
-    if (!catalogue) throw new NotFoundException('Catalogue not found');
-    return catalogue.products;
-  }
-
-  async deleteImage(productId: string, url: string, userId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      include: { catalogue: true },
-    });
-
-    if (!product || product.catalogue.userId !== userId) {
-      throw new ForbiddenException('No tienes acceso a este producto');
-    }
-
-    await this.supabaseService.deleteImagesByUrls([url]);
-
-    await this.prisma.productImage.deleteMany({
-      where: {
-        productId,
-        url,
-      },
-    });
-
-    return { message: 'Imagen eliminada correctamente' };
-  }
-
-  async findById(productId: string, userId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        catalogue: true,
-        images: true,
-      },
-    });
-
-    if (!product) throw new NotFoundException('Product not found');
-    if (product.catalogue.userId !== userId) {
-      throw new ForbiddenException('You do not own this product');
-    }
 
     return product;
   }
@@ -157,12 +107,15 @@ export class ProductService {
       const newImageUrls: string[] = [];
 
       for (const file of files) {
-        if (!file.mimetype.startsWith('image/')) {
-          throw new BadRequestException('Solo se permiten archivos de imagen');
-        }
+        this.imageService.validateImageFile(file);
+        const compressedBuffer = await this.imageService.compressImage(file);
 
-        const path = `products/${randomUUID()}-${file.originalname}`;
-        const url = await this.supabaseService.uploadImage(file, path);
+        const path = `products/${randomUUID()}-${file.originalname}.webp`;
+        const url = await this.supabaseService.uploadImage(
+          { ...file, buffer: compressedBuffer },
+          path,
+        );
+
         newImageUrls.push(url);
       }
 
@@ -184,6 +137,61 @@ export class ProductService {
         status: dto.status,
       },
     });
+  }
+
+  async findAllFromCatalogue(slug: string) {
+    const catalogue = await this.prisma.catalogue.findUnique({
+      where: { slug },
+      include: {
+        products: {
+          include: {
+            images: true,
+          },
+        },
+      },
+    });
+
+    if (!catalogue) throw new NotFoundException('Catalogue not found');
+    return catalogue.products;
+  }
+
+  async findById(productId: string, userId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        catalogue: true,
+        images: true,
+      },
+    });
+
+    if (!product) throw new NotFoundException('Product not found');
+    if (product.catalogue.userId !== userId) {
+      throw new ForbiddenException('You do not own this product');
+    }
+
+    return product;
+  }
+
+  async deleteImage(productId: string, url: string, userId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: { catalogue: true },
+    });
+
+    if (!product || product.catalogue.userId !== userId) {
+      throw new ForbiddenException('No tienes acceso a este producto');
+    }
+
+    await this.supabaseService.deleteImagesByUrls([url]);
+
+    await this.prisma.productImage.deleteMany({
+      where: {
+        productId,
+        url,
+      },
+    });
+
+    return { message: 'Imagen eliminada correctamente' };
   }
 
   async delete(productId: string, userId: string) {

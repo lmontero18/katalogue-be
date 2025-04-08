@@ -7,12 +7,14 @@ import { PrismaService } from 'src/shared/services/prisma/prisma.service';
 import { CreateCatalogueDto, UpdateCatalogueDto } from './dto';
 import { Prisma } from '@prisma/client';
 import { SupabaseService } from 'src/shared/services/supabase/storage.service';
+import { ImageService } from 'src/shared/services/Images/images.service';
 
 @Injectable()
 export class CatalogueService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supabaseService: SupabaseService,
+    private readonly imageService: ImageService,
   ) {}
 
   async create(
@@ -23,10 +25,15 @@ export class CatalogueService {
     let imageUrl: string | undefined;
 
     if (file) {
-      this.validateImageFile(file);
+      this.imageService.validateImageFile(file);
 
-      const path = `catalogues/${dto.slug}-${Date.now()}.jpg`;
-      imageUrl = await this.supabaseService.uploadImage(file, path);
+      const compressedBuffer = await this.imageService.compressImage(file);
+      const path = `catalogues/${dto.slug}-${Date.now()}.webp`;
+
+      imageUrl = await this.supabaseService.uploadImage(
+        { ...file, buffer: compressedBuffer },
+        path,
+      );
     }
 
     return await this.prisma.catalogue.create({
@@ -57,7 +64,12 @@ export class CatalogueService {
     });
   }
 
-  async update(id: string, userId: string, dto: UpdateCatalogueDto) {
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdateCatalogueDto,
+    file?: Express.Multer.File,
+  ) {
     const catalogue = await this.prisma.catalogue.findUnique({
       where: { id },
     });
@@ -66,9 +78,26 @@ export class CatalogueService {
       throw new ForbiddenException('You do not own this catalogue');
     }
 
+    let imageUrl = catalogue.storeImageUrl;
+
+    if (file) {
+      this.imageService.validateImageFile(file);
+
+      const compressedBuffer = await this.imageService.compressImage(file);
+      const path = `catalogues/${catalogue.slug}-${Date.now()}.webp`;
+
+      imageUrl = await this.supabaseService.uploadImage(
+        { ...file, buffer: compressedBuffer },
+        path,
+      );
+    }
+
     return await this.prisma.catalogue.update({
       where: { id },
-      data: { ...dto },
+      data: {
+        ...dto,
+        storeImageUrl: imageUrl,
+      },
     });
   }
 
@@ -84,21 +113,5 @@ export class CatalogueService {
     return await this.prisma.catalogue.delete({
       where: { id },
     });
-  }
-
-  // 👇 Función privada para validar el archivo
-  private validateImageFile(file: Express.Multer.File) {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.mimetype)) {
-      throw new BadRequestException(
-        'Formato de imagen no permitido. Solo se permiten JPG, PNG o WebP.',
-      );
-    }
-
-    // (Opcional) también podrías validar tamaño máximo, ejemplo 2MB
-    const maxSizeInBytes = 2 * 1024 * 1024;
-    if (file.size > maxSizeInBytes) {
-      throw new BadRequestException('La imagen no puede superar los 2MB.');
-    }
   }
 }

@@ -43,13 +43,15 @@ export class CatalogueController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
   @Patch(':id')
   update(
     @Param('id') id: string,
     @CurrentUser('userId') userId: string,
     @Body() dto: UpdateCatalogueDto,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.catalogueService.update(id, userId, dto);
+    return this.catalogueService.update(id, userId, dto, file);
   }
 
   @UseGuards(JwtAuthGuard)
