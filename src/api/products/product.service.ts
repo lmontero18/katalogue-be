@@ -55,6 +55,7 @@ export class ProductService {
       data: {
         name: dto.name,
         price: dto.price,
+        currency: dto.currency,
         details: dto.details,
         status: dto.status,
         catalogueId: dto.catalogueId,
@@ -178,6 +179,7 @@ export class ProductService {
       data: {
         name: dto.name,
         price: dto.price,
+        currency: dto.currency,
         details: dto.details,
         status: dto.status,
       },

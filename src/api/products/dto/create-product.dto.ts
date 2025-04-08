@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsIn,
+} from 'class-validator';
 import { ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 
@@ -11,6 +17,11 @@ export class CreateProductDto {
   @IsNumber()
   @IsNotEmpty()
   price: number;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['CRC', 'USD', 'MXN', 'COP', 'ARS', 'PEN', 'CLP'])
+  currency: string;
 
   @IsOptional()
   @IsString()
