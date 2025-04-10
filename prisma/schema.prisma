@@ -21,21 +21,25 @@ model User {
 }
 
 model Catalogue {
-  id            String    @id @default(uuid())
-  userId        String
-  slug          String    @unique
-  businessName  String
-  contactLink   String
-  storeImageUrl String
-  phoneNumber   String
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
-  user          User      @relation(fields: [userId], references: [id])
-  products      Product[]
+  id                String    @id @default(uuid())
+  userId            String
+  slug              String    @unique
+  businessName      String
+  contactMethod     ContactMethod
+  whatsappNumber    String?   
+  instagramUsername String?   
+  facebookUrl       String?
+  storeLink         String?
+  storeImageUrl     String
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  user              User      @relation(fields: [userId], references: [id])
+  products          Product[]
 
   @@map("catalogues")
 }
+
 
 model Product {
   id          String        @id @default(uuid())
@@ -66,4 +70,10 @@ enum ProductStatus {
   AVAILABLE
   SOLD
   RESERVED
+}
+
+enum ContactMethod {
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
 }

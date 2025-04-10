@@ -2,10 +2,18 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsEnum,
+  ValidateIf,
   IsUrl,
   Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+
+export enum ContactMethod {
+  WHATSAPP = 'WHATSAPP',
+  INSTAGRAM = 'INSTAGRAM',
+  FACEBOOK = 'FACEBOOK',
+}
 
 export class CreateCatalogueDto {
   @IsNotEmpty()
@@ -17,22 +25,34 @@ export class CreateCatalogueDto {
   businessName: string;
 
   @IsNotEmpty()
+  @IsEnum(ContactMethod, { message: 'Invalid contact method' })
+  contactMethod: ContactMethod;
+
+  @ValidateIf((o) => o.contactMethod === ContactMethod.WHATSAPP)
   @IsString()
   @Matches(/^[0-9+]+$/, {
-    message: 'Phone number must contain only numbers or +',
+    message: 'WhatsApp number must contain only numbers or +',
   })
-  phoneNumber: string;
+  whatsappNumber?: string;
+
+  @ValidateIf((o) => o.contactMethod === ContactMethod.INSTAGRAM)
+  @IsString({ message: 'Instagram username must be a string' })
+  instagramUsername?: string;
+
+  @ValidateIf((o) => o.contactMethod === ContactMethod.FACEBOOK)
+  @IsUrl({}, { message: 'Facebook URL must be a valid URL (e.g. https://...)' })
+  facebookUrl?: string;
 
   @IsOptional()
-  @IsString({ message: 'Invalid image format' })
+  @IsString({ message: 'Invalid image URL format' })
   storeImageUrl?: string;
 
-  @IsNotEmpty()
-  @IsUrl({}, { message: 'Debe ser una URL válida (ej: https://...)' })
+  @IsOptional()
+  @IsUrl({}, { message: 'Store link must be a valid URL (e.g. https://...)' })
   @Transform(({ value }) =>
-    value.startsWith('http://') || value.startsWith('https://')
+    value?.startsWith('http://') || value?.startsWith('https://')
       ? value
       : `https://${value}`,
   )
-  contactLink: string;
+  storeLink?: string;
 }
