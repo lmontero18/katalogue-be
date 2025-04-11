@@ -47,12 +47,22 @@ export class CreateCatalogueDto {
   @IsString({ message: 'Invalid image URL format' })
   storeImageUrl?: string;
 
+  
+  @Transform(({ value }) => {
+    if (!value || typeof value !== 'string') return null;
+  
+    const cleaned = value.trim().replace(/\s+/g, ''); // <- esto limpia TODO
+  
+    if (cleaned === '') return null;
+  
+    if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+      return cleaned;
+    }
+  
+    return `https://${cleaned}`;
+  })
   @IsOptional()
   @IsUrl({}, { message: 'Store link must be a valid URL (e.g. https://...)' })
-  @Transform(({ value }) =>
-    value?.startsWith('http://') || value?.startsWith('https://')
-      ? value
-      : `https://${value}`,
-  )
   storeLink?: string;
+  
 }
