@@ -74,8 +74,25 @@ export class CatalogueService {
     });
   }
 
+  private generateContactLink(catalogue: any): string | null {
+    switch (catalogue.contactMethod) {
+      case 'WHATSAPP':
+        return catalogue.whatsappNumber
+          ? `https://wa.me/${catalogue.whatsappNumber.replace(/\D/g, '')}`
+          : null;
+      case 'INSTAGRAM':
+        return catalogue.instagramUsername
+          ? `https://instagram.com/${catalogue.instagramUsername}`
+          : null;
+      case 'FACEBOOK':
+        return catalogue.facebookUrl || null;
+      default:
+        return catalogue.storeLink || null;
+    }
+  }
+
   async findBySlug(slug: string) {
-    return await this.prisma.catalogue.findUnique({
+    const catalogue = await this.prisma.catalogue.findUnique({
       where: { slug },
       include: {
         products: {
@@ -85,6 +102,17 @@ export class CatalogueService {
         },
       },
     });
+  
+    if (!catalogue) {
+      throw new BadRequestException('Catálogo no encontrado');
+    }
+  
+    const contactLink = this.generateContactLink(catalogue);
+  
+    return {
+      ...catalogue,
+      contactLink,
+    };
   }
 
   async update(
@@ -123,6 +151,9 @@ export class CatalogueService {
         dto.contactMethod === 'INSTAGRAM' && !dto.instagramUsername;
       const isFacebook = dto.contactMethod === 'FACEBOOK' && !dto.facebookUrl;
 
+      
+      
+
       if (isWhatsapp || isInstagram || isFacebook) {
         throw new BadRequestException(
           `Missing required contact field for method: ${dto.contactMethod}`,
@@ -133,6 +164,10 @@ export class CatalogueService {
       if (dto.contactMethod !== 'WHATSAPP') dto.whatsappNumber = undefined;
       if (dto.contactMethod !== 'INSTAGRAM') dto.instagramUsername = undefined;
       if (dto.contactMethod !== 'FACEBOOK') dto.facebookUrl = undefined;
+    }
+
+    if (dto.storeLink?.trim() === '') {
+      dto.storeLink = null;
     }
 
     return await this.prisma.catalogue.update({
