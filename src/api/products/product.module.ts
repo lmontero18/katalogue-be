@@ -21,14 +21,25 @@ import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Post()
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 3))
   create(
     @CurrentUser('userId') userId: string,
-    @Body() dto: CreateProductDto,
+    @Body() body: any,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
+    const categoryNames = body.categoryNames
+      ? Array.isArray(body.categoryNames)
+        ? body.categoryNames
+        : [body.categoryNames]
+      : [];
+
+    const dto: CreateProductDto & { categoryNames?: string[] } = {
+      ...body,
+      categoryNames,
+    };
+
     return this.productService.create(userId, dto, files);
   }
 
