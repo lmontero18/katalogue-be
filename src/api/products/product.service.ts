@@ -8,7 +8,6 @@ import { PrismaService } from 'src/shared/services/prisma/prisma.service';
 import { SupabaseService } from 'src/shared/services/supabase/storage.service';
 import { CreateProductDto, UpdateProductDto } from './dto';
 import { randomUUID } from 'crypto';
-import { Prisma } from '@prisma/client';
 import { ImageService } from 'src/shared/services/Images/images.service';
 
 @Injectable()
@@ -74,47 +73,11 @@ export class ProductService {
       })),
     });
 
-    // Categorías
-    if (dto.categoryNames && dto.categoryNames.length > 0) {
-      const cleanedNames = dto.categoryNames
-        .map((name) => name.trim().toLowerCase())
-        .filter((n) => n !== '');
-
-      const uniqueNames = Array.from(new Set(cleanedNames));
-
-      const existingCategories = await this.prisma.category.findMany({
-        where: {
-          catalogueId: dto.catalogueId,
-          name: { in: uniqueNames },
-        },
-      });
-
-      const existingNames = existingCategories.map((c) => c.name);
-      const namesToCreate = uniqueNames.filter(
-        (name) => !existingNames.includes(name),
-      );
-
-      const newCategories = await Promise.all(
-        namesToCreate.map((name) =>
-          this.prisma.category.create({
-            data: {
-              name,
-              catalogueId: dto.catalogueId,
-            },
-          }),
-        ),
-      );
-
-      const allCategories = [...existingCategories, ...newCategories];
-
-      await this.prisma.productCategory.createMany({
-        data: allCategories.map((c) => ({
-          productId: product.id,
-          categoryId: c.id,
-        })),
-        skipDuplicates: true,
-      });
-    }
+    await this.attachCategoriesToProduct(
+      product.id,
+      dto.catalogueId,
+      dto.categoryNames,
+    );
 
     return product;
   }
@@ -122,7 +85,7 @@ export class ProductService {
   async update(
     productId: string,
     userId: string,
-    dto: UpdateProductDto & { categoryNames?: string[] },
+    dto: UpdateProductDto & { categoryNames?: string[] | string },
     files: Express.Multer.File[] = [],
   ) {
     const product = await this.prisma.product.findUnique({
@@ -130,7 +93,6 @@ export class ProductService {
       include: {
         catalogue: true,
         images: true,
-        categories: true,
       },
     });
 
@@ -170,47 +132,17 @@ export class ProductService {
       });
     }
 
-    // 🧠 Actualizar categorías
-    if (dto.categoryNames && dto.categoryNames.length > 0) {
-      const names = Array.from(
-        new Set(dto.categoryNames.map((n) => n.trim().toLowerCase())),
-      ).filter((n) => n !== '');
+    const normalizedCategoryNames = Array.isArray(dto.categoryNames)
+      ? dto.categoryNames
+      : typeof dto.categoryNames === 'string'
+        ? [dto.categoryNames]
+        : [];
 
-      const existing = await this.prisma.category.findMany({
-        where: {
-          catalogueId: product.catalogueId,
-          name: { in: names },
-        },
-      });
-
-      const existingNames = existing.map((c) => c.name);
-
-      const toCreate = names.filter((n) => !existingNames.includes(n));
-      const newCategories = await Promise.all(
-        toCreate.map((name) =>
-          this.prisma.category.create({
-            data: {
-              name,
-              catalogueId: product.catalogueId,
-            },
-          }),
-        ),
-      );
-
-      const allCategories = [...existing, ...newCategories];
-
-      await this.prisma.productCategory.deleteMany({
-        where: { productId },
-      });
-
-      await this.prisma.productCategory.createMany({
-        data: allCategories.map((cat) => ({
-          productId,
-          categoryId: cat.id,
-        })),
-        skipDuplicates: true,
-      });
-    }
+    await this.attachCategoriesToProduct(
+      product.id,
+      product.catalogueId,
+      normalizedCategoryNames,
+    );
 
     return this.prisma.product.update({
       where: { id: productId },
@@ -221,6 +153,53 @@ export class ProductService {
         details: dto.details,
         status: dto.status,
       },
+    });
+  }
+
+  private async attachCategoriesToProduct(
+    productId: string,
+    catalogueId: string,
+    categoryNames?: string[],
+  ) {
+    // Limpieza primero SIEMPRE
+    await this.prisma.productCategory.deleteMany({
+      where: { productId },
+    });
+
+    if (!categoryNames || categoryNames.length === 0) return;
+
+    const names = Array.from(
+      new Set(categoryNames.map((n) => n.trim().toLowerCase())),
+    ).filter((n) => n !== '');
+
+    if (names.length === 0) return;
+
+    const existing = await this.prisma.category.findMany({
+      where: {
+        catalogueId,
+        name: { in: names },
+      },
+    });
+
+    const existingNames = existing.map((c) => c.name);
+    const toCreate = names.filter((n) => !existingNames.includes(n));
+
+    const newCategories = await Promise.all(
+      toCreate.map((name) =>
+        this.prisma.category.create({
+          data: { name, catalogueId },
+        }),
+      ),
+    );
+
+    const allCategories = [...existing, ...newCategories];
+
+    await this.prisma.productCategory.createMany({
+      data: allCategories.map((cat) => ({
+        productId,
+        categoryId: cat.id,
+      })),
+      skipDuplicates: true,
     });
   }
 
@@ -303,22 +282,18 @@ export class ProductService {
       throw new ForbiddenException('You do not own this product');
     }
 
-    // ⛔️ Eliminar imágenes del storage
     await this.supabaseService.deleteImagesByUrls(
       product.images.map((img) => img.url),
     );
 
-    // 🧽 Eliminar imágenes de la DB
     await this.prisma.productImage.deleteMany({
       where: { productId },
     });
 
-    // ✅ Eliminar relaciones con categorías
     await this.prisma.productCategory.deleteMany({
       where: { productId },
     });
 
-    // ✅ Finalmente eliminar el producto
     return this.prisma.product.delete({
       where: { id: productId },
     });

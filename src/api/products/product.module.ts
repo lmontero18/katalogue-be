@@ -53,15 +53,26 @@ export class ProductController {
     return this.productService.deleteImage(productId, url, userId);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 3))
   update(
     @Param('id') id: string,
     @CurrentUser('userId') userId: string,
-    @Body() dto: UpdateProductDto,
+    @Body() body: any,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
+    const categoryNames = body.categoryNames
+      ? Array.isArray(body.categoryNames)
+        ? body.categoryNames
+        : [body.categoryNames]
+      : [];
+
+    const dto: UpdateProductDto & { categoryNames?: string[] } = {
+      ...body,
+      categoryNames,
+    };
+
     return this.productService.update(id, userId, dto, files);
   }
 
