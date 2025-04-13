@@ -20,7 +20,7 @@ export class CreateProductDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn(['CRC', 'USD', 'MXN', 'COP', 'ARS', 'PEN', 'CLP'])
+  @IsIn(['CRC', 'USD', 'MXN', 'COP', 'ARS', 'PEN', 'CLP', 'EUR'])
   currency: string;
 
   @IsOptional()
