@@ -4,9 +4,10 @@ import {
   IsString,
   IsNumber,
   IsIn,
+  IsArray,
 } from 'class-validator';
 import { ProductStatus } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsNotEmpty()
@@ -33,4 +34,20 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
   catalogueId: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(value) ? value : [];
+  })
+  @IsArray()
+  @IsString({ each: true })
+  categoryNames?: string[];
 }

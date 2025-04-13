@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/shared/services/prisma/prisma.service';
 import { CreateCatalogueDto, UpdateCatalogueDto } from './dto';
-import { Prisma } from '@prisma/client';
 import { SupabaseService } from 'src/shared/services/supabase/storage.service';
 import { ImageService } from 'src/shared/services/Images/images.service';
 
@@ -36,7 +35,7 @@ export class CatalogueService {
       );
     }
 
-    // Custom validation for required contact field based on contact method
+    // Validación según método de contacto
     const isWhatsapp = dto.contactMethod === 'WHATSAPP' && !dto.whatsappNumber;
     const isInstagram =
       dto.contactMethod === 'INSTAGRAM' && !dto.instagramUsername;
@@ -48,7 +47,7 @@ export class CatalogueService {
       );
     }
 
-    // Clean unused contact fields
+    // Limpiar campos que no se usan
     if (dto.contactMethod !== 'WHATSAPP') dto.whatsappNumber = undefined;
     if (dto.contactMethod !== 'INSTAGRAM') dto.instagramUsername = undefined;
     if (dto.contactMethod !== 'FACEBOOK') dto.facebookUrl = undefined;
@@ -98,17 +97,22 @@ export class CatalogueService {
         products: {
           include: {
             images: true,
+            categories: {
+              include: {
+                category: true,
+              },
+            },
           },
         },
       },
     });
-  
+
     if (!catalogue) {
       throw new BadRequestException('Catálogo no encontrado');
     }
-  
+
     const contactLink = this.generateContactLink(catalogue);
-  
+
     return {
       ...catalogue,
       contactLink,
@@ -143,7 +147,7 @@ export class CatalogueService {
       );
     }
 
-    //same validation and cleanup as create
+    // Validación de contacto si se actualiza
     if (dto.contactMethod) {
       const isWhatsapp =
         dto.contactMethod === 'WHATSAPP' && !dto.whatsappNumber;
@@ -151,16 +155,13 @@ export class CatalogueService {
         dto.contactMethod === 'INSTAGRAM' && !dto.instagramUsername;
       const isFacebook = dto.contactMethod === 'FACEBOOK' && !dto.facebookUrl;
 
-      
-      
-
       if (isWhatsapp || isInstagram || isFacebook) {
         throw new BadRequestException(
           `Missing required contact field for method: ${dto.contactMethod}`,
         );
       }
 
-      // Clean up
+      // Limpiar campos no usados
       if (dto.contactMethod !== 'WHATSAPP') dto.whatsappNumber = undefined;
       if (dto.contactMethod !== 'INSTAGRAM') dto.instagramUsername = undefined;
       if (dto.contactMethod !== 'FACEBOOK') dto.facebookUrl = undefined;

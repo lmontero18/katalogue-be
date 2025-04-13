@@ -15,45 +15,49 @@ model User {
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
   deletedAt  DateTime?   @map("deleted_at")
+
   catalogues Catalogue[]
 
   @@map("users")
 }
 
 model Catalogue {
-  id                String    @id @default(uuid())
+  id                String      @id @default(uuid())
   userId            String
-  slug              String    @unique
+  slug              String      @unique
   businessName      String
   contactMethod     ContactMethod
-  whatsappNumber    String?   
-  instagramUsername String?   
+  whatsappNumber    String?
+  instagramUsername String?
   facebookUrl       String?
   storeLink         String?
   storeImageUrl     String
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
-  user              User      @relation(fields: [userId], references: [id])
-  products          Product[]
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  deletedAt         DateTime?   @map("deleted_at")
+
+  user        User       @relation(fields: [userId], references: [id])
+  products    Product[]
+  categories  Category[]
 
   @@map("catalogues")
 }
 
-
 model Product {
-  id          String        @id @default(uuid())
+  id          String            @id @default(uuid())
   catalogueId String
   name        String
   price       Decimal
-  status      ProductStatus @default(AVAILABLE)
+  status      ProductStatus     @default(AVAILABLE)
   details     String?
-  currency    String        @default("CRC")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  deletedAt   DateTime?     @map("deleted_at")
-  catalogue   Catalogue     @relation(fields: [catalogueId], references: [id])
+  currency    String            @default("CRC")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+
+  catalogue   Catalogue         @relation(fields: [catalogueId], references: [id])
   images      ProductImage[]
+  categories  ProductCategory[]
 
   @@map("products")
 }
@@ -63,7 +67,34 @@ model ProductImage {
   productId String
   url       String
   createdAt DateTime @default(now())
+
   product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Category {
+  id           String           @id @default(uuid())
+  name         String
+  catalogueId  String
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  deletedAt    DateTime?        @map("deleted_at")
+
+  catalogue    Catalogue        @relation(fields: [catalogueId], references: [id])
+  products     ProductCategory[]
+
+  @@unique([catalogueId, name])
+  @@map("categories")
+}
+
+model ProductCategory {
+  productId   String
+  categoryId  String
+
+  product     Product   @relation(fields: [productId], references: [id])
+  category    Category  @relation(fields: [categoryId], references: [id])
+
+  @@id([productId, categoryId])
+  @@map("product_categories")
 }
 
 enum ProductStatus {
