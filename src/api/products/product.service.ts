@@ -169,7 +169,7 @@ export class ProductService {
     if (!categoryNames || categoryNames.length === 0) return;
 
     const names = Array.from(
-      new Set(categoryNames.map((n) => n.trim().toLowerCase())),
+      new Set(categoryNames.map((n) => n.trim())),
     ).filter((n) => n !== '');
 
     if (names.length === 0) return;

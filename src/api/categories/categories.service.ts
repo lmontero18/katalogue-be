@@ -29,10 +29,7 @@ export class CategoryService {
     const existing = await this.prisma.category.findFirst({
       where: {
         catalogueId: catalogue.id,
-        name: {
-          equals: dto.name,
-          mode: 'insensitive',
-        },
+        name: dto.name,
       },
     });
 
@@ -41,7 +38,6 @@ export class CategoryService {
         'A category with this name already exists for this catalogue',
       );
     }
-
     return this.prisma.category.create({
       data: {
         name: dto.name,
