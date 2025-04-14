@@ -23,7 +23,7 @@ export class ProductController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('images', 3))
+  @UseInterceptors(FilesInterceptor('images', 5))
   create(
     @CurrentUser('userId') userId: string,
     @Body() body: any,
@@ -66,7 +66,7 @@ export class ProductController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('images', 3))
+  @UseInterceptors(FilesInterceptor('images', 5))
   update(
     @Param('id') id: string,
     @CurrentUser('userId') userId: string,

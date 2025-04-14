@@ -36,8 +36,8 @@ export class ProductService {
       throw new BadRequestException('At least one image is required');
     }
 
-    if (files.length > 3) {
-      throw new BadRequestException('You can upload up to 3 images only');
+    if (files.length > 5) {
+      throw new BadRequestException('You can upload up to 5 images only');
     }
 
     const imageUrls: string[] = [];
@@ -102,9 +102,9 @@ export class ProductService {
     }
 
     const totalImages = product.images.length + files.length;
-    if (totalImages > 3) {
+    if (totalImages > 5) {
       throw new BadRequestException(
-        'Solo se permiten hasta 3 imágenes por producto',
+        'Solo se permiten hasta 5 imágenes por producto',
       );
     }
 
